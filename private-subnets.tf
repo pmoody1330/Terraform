@@ -8,3 +8,34 @@ resource "aws_subnet" "private" {
     Name = "PrivateSubnet-${count.index + 1}"
   }
 }
+
+
+resource "aws_instance" "nat" {
+  ami               = var.nat_amis[var.region]
+  instance_type     = "t2.micro"
+  subnet_id         = local.pub_sub_ids[0]
+  source_dest_check = false
+  tags = {
+    Name = "JavaHomeNAT"
+  }
+}
+
+resource "aws_route_table" "privatert" {
+  vpc_id = aws_vpc.my_app.id
+
+  route {
+    cidr_block  = "0.0.0.0/0"
+    instance_id = aws_instance.nat.id
+  }
+
+  tags = {
+    # Public Route Table PRT
+    Name = "JavaHomePrivateRT"
+  }
+}
+
+resource "aws_route_table_association" "private_rt_association" {
+  count          = length(slice(local.az_names, 0, 2))
+  subnet_id      = aws_subnet.private.*.id[count.index]
+  route_table_id = aws_route_table.privatert.id
+}
