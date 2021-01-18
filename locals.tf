@@ -1,5 +1,5 @@
 locals {
-  vpc_name = ${terraform.workspace == "dev" ? "JavaHome-dev" : "JavaHome-prod"}
+  vpc_name = terraform.workspace == "dev" ? "JavaHome-dev" : "JavaHome-prod"
 }
 
 resource "aws_vpc" "my_vpc" {
