@@ -11,10 +11,12 @@ resource "aws_subnet" "private" {
 
 
 resource "aws_instance" "nat" {
-  ami               = var.nat_amis[var.region]
-  instance_type     = "t2.micro"
-  subnet_id         = local.pub_sub_ids[0]
-  source_dest_check = false
+  ami                    = var.nat_amis[var.region]
+  instance_type          = "t2.micro"
+  subnet_id              = local.pub_sub_ids[0]
+  source_dest_check      = false
+  vpc_security_group_ids = [aws_security_group.nat_sg.id]
+
   tags = {
     Name = "JavaHomeNAT"
   }
@@ -38,4 +40,21 @@ resource "aws_route_table_association" "private_rt_association" {
   count          = length(slice(local.az_names, 0, 2))
   subnet_id      = aws_subnet.private.*.id[count.index]
   route_table_id = aws_route_table.privatert.id
+}
+
+resource "aws_security_group" "nat_sg" {
+  name        = "nat_sg"
+  description = "Allow traffic for private subnets"
+  vpc_id      = aws_vpc.my_app.id
+
+  egress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+}
+
+output "aws_security_group" {
+  value = aws_security_group.nat_sg.id
 }
