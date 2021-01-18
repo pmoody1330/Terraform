@@ -1,5 +1,6 @@
 locals {
-  az_names = data.aws_availability_zones.azs.names
+  az_names    = data.aws_availability_zones.azs.names
+  pub_sub_ids = aws_subnet.public.*.id
 }
 
 resource "aws_subnet" "public" {
@@ -11,4 +12,32 @@ resource "aws_subnet" "public" {
   tags = {
     Name = "PublicSubnet-${count.index + 1}"
   }
+}
+
+resource "aws_internet_gateway" "igw" {
+  vpc_id = aws_vpc.my_app.id
+
+  tags = {
+    Name = "JavaHomeIgw"
+  }
+}
+
+resource "aws_route_table" "prt" {
+  vpc_id = aws_vpc.my_app.id
+
+  route {
+    cidr_block = "0.0.0.0/0"
+    gateway_id = aws_internet_gateway.igw.id
+  }
+
+  tags = {
+    # Public Route Table PRT
+    Name = "JavaHomePRT"
+  }
+}
+
+resource "aws_route_table_association" "pub_sub_association" {
+  count          = length(local.az_names)
+  subnet_id      = local.pub_sub_ids[count.index]
+  route_table_id = aws_route_table.prt.id
 }
